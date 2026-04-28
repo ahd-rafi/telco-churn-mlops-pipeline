@@ -75,6 +75,74 @@ def churn_prediction(data: CustomerData):
 
 
 # ---------------------------------------------------------------------------
+# Custom CSS overlay — enhances the default layout
+# ---------------------------------------------------------------------------
+CUSTOM_CSS = """
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+.gradio-container {
+    font-family: 'Inter', sans-serif !important;
+    max-width: 1100px !important;
+}
+
+/* Title gradient */
+.gradio-container h1 {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 700 !important;
+    font-size: 2rem !important;
+}
+
+/* Description text */
+.gradio-container .md p {
+    color: #94a3b8 !important;
+    font-size: 0.95rem !important;
+}
+
+/* Panel cards */
+.gradio-container .panel {
+    border-radius: 14px !important;
+    border: 1px solid rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Inputs */
+.gradio-container input,
+.gradio-container select,
+.gradio-container textarea {
+    border-radius: 8px !important;
+}
+
+/* Primary button */
+.gradio-container .primary {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.gradio-container .primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+}
+
+/* Secondary button */
+.gradio-container .secondary {
+    border-radius: 10px !important;
+}
+
+/* Example table */
+.gradio-container table {
+    border-radius: 10px !important;
+    overflow: hidden;
+}
+
+/* Footer */
+.gradio-container footer { opacity: 0.6; }
+"""
+
+
+# ---------------------------------------------------------------------------
 # Gradio web interface
 # ---------------------------------------------------------------------------
 def _gradio_predict(
@@ -96,8 +164,20 @@ def _gradio_predict(
         "MonthlyCharges": float(MonthlyCharges),
         "TotalCharges": float(TotalCharges),
     }
-    return str(predict(payload))
+    result = predict(payload)
 
+    if "likely to churn" in result.lower() and "not" not in result.lower():
+        return f"⚠️ {result} — High risk. Consider retention strategies."
+    else:
+        return f"✅ {result} — Low risk."
+
+
+_theme = gr.themes.Soft(
+    primary_hue=gr.themes.colors.indigo,
+    secondary_hue=gr.themes.colors.violet,
+    neutral_hue=gr.themes.colors.slate,
+    font=gr.themes.GoogleFont("Inter"),
+)
 
 _demo = gr.Interface(
     fn=_gradio_predict,
@@ -140,7 +220,7 @@ _demo = gr.Interface(
                   minimum=0, maximum=10000),
     ],
     outputs=gr.Textbox(label="Prediction", lines=2),
-    title="Telco Customer Churn Predictor",
+    title="📡 Telco Customer Churn Predictor",
     description=(
         "Enter customer details to predict churn risk. "
         "The model uses an XGBoost classifier trained on historical telecom data."
@@ -155,7 +235,8 @@ _demo = gr.Interface(
          "Yes", "Yes", "No", "No", "Two year", "No",
          "Credit card (automatic)", 60, 45.0, 2700.0],
     ],
-    theme=gr.themes.Base(),
+    theme=_theme,
+    css=CUSTOM_CSS,
 )
 
 # Mount Gradio inside the FastAPI app at /ui
